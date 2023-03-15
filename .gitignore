@@ -119,5 +119,9 @@ fabric.properties
 # Linux trash folder which might appear on any partition or disk
 .Trash-*
 
+# eclipse/jdtls
+.classpath
+.project
+.settings/*
 
 !repo/**
