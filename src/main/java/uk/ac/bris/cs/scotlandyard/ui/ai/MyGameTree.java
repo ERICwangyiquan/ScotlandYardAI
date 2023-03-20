@@ -10,19 +10,25 @@ import java.util.stream.Collectors;
 
 public final class MyGameTree {
     public static int miniMax(ImmutableGameState gameState, int depth, int alpha, int beta, int mrXLocation) {
-        boolean isMrX = gameState.getRemaining().contains(Piece.MrX.MRX);
-
         if (depth == 0) return score(gameState, gameState.getDetectives(), mrXLocation);
         if (gameState.getWinner().contains(Piece.MrX.MRX))  return Integer.MAX_VALUE;
         else if (!gameState.getWinner().isEmpty()) return Integer.MIN_VALUE;
 
-        if (isMrX) {
+        // BUG nonsense. Should check for isMrX, so the boolean definition is wrong.
+        boolean isMrX = gameState.getRemaining().contains(Piece.MrX.MRX);
+        if (! isMrX) {
+            System.out.println("isMrX");
             int maxScore = Integer.MIN_VALUE;
-            List<Move> sortedMove = gameState.getAvailableMoves().stream().toList(); // sort all the moves before keep going down in the tree, for pruning
-            sortedMove = sortedMove.stream().sorted(Comparator.comparingInt((Move move) -> score(gameState.clone().advance(move), // 1st parameter for score()
-                            gameState.getDetectives(),  // 2nd
-                            move.getClass().equals(Move.DoubleMove.class) ? // 3rd
-                            ((Move.DoubleMove) move).destination2 : ((Move.SingleMove) move).destination))).collect(Collectors.toList()); // ascending order,
+            List<Move> sortedMove = gameState.getAvailableMoves().stream()
+                .sorted(Comparator
+                        .comparingInt((Move move) ->
+                                      score(gameState.clone().advance(move),
+                                            gameState.getDetectives(),
+                                            move.getClass().equals(Move.DoubleMove.class) ?
+                                            ((Move.DoubleMove) move).destination2 : ((Move.SingleMove) move).destination))
+                        .reversed())
+                .toList();
+            // TODO probably can prune earlier? Come back later or leave for Eric
             for (Move move : sortedMove) {
                 int newMrXLocation = move.getClass().equals(Move.DoubleMove.class) ?
                         ((Move.DoubleMove) move).destination2 : ((Move.SingleMove) move).destination;
@@ -33,6 +39,7 @@ public final class MyGameTree {
             }
             return maxScore;
         } else {
+            System.out.println("NOT isMrX");
             int minScore = Integer.MAX_VALUE;
             List<Move> sortedMove = gameState.getAvailableMoves().stream().toList(); // sort all the moves before keep going down in the tree
 
