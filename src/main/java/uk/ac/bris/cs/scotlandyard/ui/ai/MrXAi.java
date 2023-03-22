@@ -14,6 +14,8 @@ import uk.ac.bris.cs.scotlandyard.model.*;
 import uk.ac.bris.cs.scotlandyard.model.Board.TicketBoard;
 import uk.ac.bris.cs.scotlandyard.model.MyGameStateFactory;
 
+import static java.lang.Thread.sleep;
+
 public class MrXAi implements Ai {
 
 //	private Optional<TicketBoard> tickets;
@@ -23,20 +25,28 @@ public class MrXAi implements Ai {
 		return "MR.X";
 	}
 
-	@Nonnull @Override public Move pickMove(
+	@Nonnull @Override public Move pickMove(	// TODO 二维数组提前算好所有的Dijkstra 异步
 			@Nonnull Board board,
-			Pair<Long, TimeUnit> timeoutPair) {
+			Pair<Long, TimeUnit> timeoutPair) {		//timeoutPair.left() is duration in timeoutPair.right()（秒）单位下
+		final long startTime = timeoutPair.right().convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+
 		//  for every time calling GameTree，collect the move with maximum score，return
 		int max = Integer.MIN_VALUE;
 		Move bestMove = null;
 		for (Move move : board.getAvailableMoves()) {
+//			long curTime = timeoutPair.right().convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+//			long halfSecond = timeoutPair.right().convert(10L, TimeUnit.SECONDS);
+//			if (curTime - startTime + halfSecond > timeoutPair.left()) {
+//				break;
+//			}
+
 			int score = 0;
 			int mrXLocation = move.source();
 			score = MyGameTree.miniMax(new ImmutableGameState(board, move.source()).clone().advance(move), // use the current ticket
-					 ImmutableGameState.maxDepth, Integer.MIN_VALUE, Integer.MAX_VALUE, mrXLocation);
-			// TODO **** here always return the same `score`,
+					 ImmutableGameState.maxDepth, Integer.MIN_VALUE, Integer.MAX_VALUE, mrXLocation, startTime, timeoutPair);
+			// TODO **** here always return the same `score`,		MiniMax depth-1变成depth就好了
 			//  the maximum score and minimum score are the same for every time of calling the `miniMax()`
-//			System.out.println("score " + score);
+			System.out.println("score " + score);
 			if (max < score) {
 				max = score;
 				bestMove = move;

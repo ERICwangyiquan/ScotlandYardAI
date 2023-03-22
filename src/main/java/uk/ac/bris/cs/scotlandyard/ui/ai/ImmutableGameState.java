@@ -27,7 +27,7 @@ public final class ImmutableGameState implements Board.GameState {
     private final ImmutableSet<Piece> winner;
     public static final int maxDepth = 1;
 
-    // TODO 在这创建一个单粒模式对象来作为constructor的synchronized锁
+    // TODO 在这创建一个单粒模式对象来作为constructor的synchronized锁 (0.1% of using lock like this, Piotr please ignore this)
 
     private ImmutableGameState(
             final GameSetup setup,
