@@ -33,22 +33,18 @@ public class MrXAi implements Ai {
 		double max = Double.NEGATIVE_INFINITY;
 		Move bestMove = null;
 		for (Move move : board.getAvailableMoves()) {
-			long curTime = timeoutPair.right().convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
-			long halfSecond = timeoutPair.right().convert(10L, TimeUnit.SECONDS);
-			if (curTime - startTime + halfSecond > timeoutPair.left()) {
-				break;
-			}
-
 			double score = 0;
 			int mrXLocation = move.source();
 			score = MyGameTree.miniMax(new ImmutableGameState(board, move.source()).clone().advance(move),
 									   3, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, mrXLocation, startTime, timeoutPair);
+//			System.out.println("score: " + score);
 			if (max <= score) {
 				max = score;
 				bestMove = move;
 			}
 		}
 		if (bestMove == null) throw new NullPointerException("expected not null");
+//		System.out.println("max: " + max);
 		return bestMove;
 	}
 
