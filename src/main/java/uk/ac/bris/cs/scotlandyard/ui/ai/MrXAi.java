@@ -1,58 +1,42 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 
-import java.util.Random;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.*;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.atlassian.fugue.Pair;
 import uk.ac.bris.cs.scotlandyard.model.*;
-import uk.ac.bris.cs.scotlandyard.model.Board.TicketBoard;
-import uk.ac.bris.cs.scotlandyard.model.MyGameStateFactory;
-
-import static java.lang.Thread.sleep;
 
 public class MrXAi implements Ai {
 
-//	private Optional<TicketBoard> tickets;
-//	private Integer location;
-
-	@Nonnull @Override public String name() {
+	@Nonnull
+	@Override
+	public String name() {
 		return "MR.X";
 	}
 
-	//timeoutPair.left() is duration in timeoutPair.right()
-	@Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
-		final long startTime = timeoutPair.right().convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
-
-		//  for every time calling GameTree，collect the move with maximum score，return
-		double max = Double.NEGATIVE_INFINITY;
-		Move bestMove = null;
-		for (Move move : board.getAvailableMoves()) {
-			double score = 0;
-			int mrXLocation = move.source();
-			score = MyGameTree.miniMax(new ImmutableGameState(board, move.source()).clone().advance(move),
-									   3, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, mrXLocation, startTime, timeoutPair);
-//			System.out.println("score: " + score);
-			if (max <= score) {
-				max = score;
-				bestMove = move;
-			}
-		}
-		if (bestMove == null) throw new NullPointerException("expected not null");
-//		System.out.println("max: " + max);
-		return bestMove;
+	@Nonnull
+	@Override
+	public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
+		final Long startTime = timeoutPair.right().convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+		Function<Move, Double> score = (Move m) -> MyGameTree.miniMax(
+				new ImmutableGameState(board, m.source()).clone().advance(m),
+				3, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, m.source(), startTime, timeoutPair);
+		// throws when getAvailableMoves is empty
+		return board.getAvailableMoves()
+				.stream()
+				.parallel()
+				.max((Move m1, Move m2) -> Double.compare(score.apply(m1), score.apply(m2)))
+				.get();
 	}
 
 	@Override
-	public void onStart() {}
+	public void onStart() {
+	}
 
 	@Override
-	public void onTerminate() {}
-
+	public void onTerminate() {
+	}
 
 }
