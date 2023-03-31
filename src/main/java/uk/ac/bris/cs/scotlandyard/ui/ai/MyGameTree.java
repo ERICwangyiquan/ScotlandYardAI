@@ -12,7 +12,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public final class MyGameTree {
-    public static double miniMax(ImmutableGameState gameState, int depth, double alpha, double beta, int mrXLocation, final long startTime, final Pair<Long, TimeUnit> timeoutPair) {
+    public static double miniMax(ImmutableGameState gameState, int depth, double alpha, double beta, int mrXLocation,
+                                 final long startTime, final Pair<Long, TimeUnit> timeoutPair) {
+        if (mrXLocation == -1) {    // for the rounds when we do not know where MrX have been (i.e. first 2 rounds)
+            // only Score the current move tp let detective spread for future rounds
+            return score(gameState, null, mrXLocation, depth);
+        }
+
         boolean maximising = gameState.getRemaining().contains(Piece.MrX.MRX);
 
         long curTime = timeoutPair.right().convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);  // check if almost timeOut
@@ -51,7 +57,7 @@ public final class MyGameTree {
             List<Move> sortedMoves = gameState.getAvailableMoves().stream()
                 .sorted(Comparator
                         .comparingDouble((Move move) -> score(gameState.clone().advance(move), move, mrXLocation, depth)))
-                .toList();;
+                .toList();
             for (Move move : sortedMoves.stream().limit(8).toList()) {
                 double curScore = miniMax(gameState.clone().advance(move), depth - 1, alpha, beta, mrXLocation, startTime, timeoutPair);
                 minScore = Math.min(minScore, curScore);
@@ -65,16 +71,16 @@ public final class MyGameTree {
     }
 
     private static double score(ImmutableGameState gameState, Move usedMove, int mrXLocation, int curDepth) {
-        if (mrXLocation != Integer.MAX_VALUE) {
-            double sum = 0;
+        double sum = 0;
+        if (mrXLocation >= 0) {
             // calculate score by distance from detectives
             int weight = 18;
             boolean weightNeeded = false;
             double lastDist = Double.NEGATIVE_INFINITY;
             List<Double> distList = new ArrayList<>();
+            Dijkstra d = new Dijkstra(gameState, mrXLocation);
             for (Player detective : gameState.getDetectives()) {
-                Dijkstra d = new Dijkstra(gameState, detective.location(), mrXLocation);
-                distList.add(Math.log(d.distTo[mrXLocation]));
+                distList.add(Math.log(d.distTo[detective.location()]));
             }
             distList = distList.stream().sorted(Comparator.comparingDouble(dist -> dist)).toList();
             if (distList.get(distList.size() - 1) - distList.get(0) > 6) {
@@ -86,7 +92,7 @@ public final class MyGameTree {
                 // multiply `weight` since more close the detective is to MrX, more important to get away from him ASAP
                 // logarithm is doing the same thing here but might be less obvious if the all the distances are small;
                 sum += (curDepth + 1) * dist * (weightNeeded ? weight : 1);
-                if (lastDist + 1 < dist) {    // e.g. "dist 5" * "weight 6" == "dist 6" * "weight 5", not let this happen
+                if (lastDist + 1 < dist) {    // e.g. "dist 5" * "weight 6" == "dist 6" * "weight 5", not letting this happen
                     weight -= 3;
                 }
                 lastDist = dist;
@@ -116,8 +122,15 @@ public final class MyGameTree {
             }
 
             return sum;
-        } else {
-            return -1;
+        } else {    // let every detective spread over the map if the location of MrX is unknown
+            for (Player detective : gameState.getDetectives()) {
+                Dijkstra d = new Dijkstra(gameState, detective.location());
+                for (Player otherDetective : gameState.getDetectives()) {
+                    if (detective.equals(otherDetective)) continue;
+                    sum += Math.log(d.distTo[otherDetective.location()]);
+                }
+            }
+            return -sum;
         }
     }
 }

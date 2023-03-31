@@ -17,10 +17,6 @@ import uk.ac.bris.cs.scotlandyard.model.MyGameStateFactory;
 import static java.lang.Thread.sleep;
 
 public class MrXAi implements Ai {
-
-//	private Optional<TicketBoard> tickets;
-//	private Integer location;
-
 	@Nonnull @Override public String name() {
 		return "MR.X";
 	}
@@ -28,14 +24,14 @@ public class MrXAi implements Ai {
 	//timeoutPair.left() is duration in timeoutPair.right()
 	@Nonnull @Override public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
 		final long startTime = timeoutPair.right().convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+		// TODO 把startTIme用onStart() method 接收
 
 		//  for every time calling GameTree，collect the move with maximum score，return
 		double max = Double.NEGATIVE_INFINITY;
 		Move bestMove = null;
 		for (Move move : board.getAvailableMoves()) {
-			double score = 0;
 			int mrXLocation = move.source();
-			score = MyGameTree.miniMax(new ImmutableGameState(board, move.source()).clone().advance(move),
+			double score = MyGameTree.miniMax(new ImmutableGameState(board, move.source()).clone().advance(move),
 									   3, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, mrXLocation, startTime, timeoutPair);
 //			System.out.println("score: " + score);
 			if (max <= score) {
