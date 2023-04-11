@@ -29,15 +29,20 @@ public class DetectivesAI implements Ai {
 		final Optional<Integer> mrXLocation = board.getMrXTravelLog()
 				.stream()
 				.sequential()
-				.map((LogEntry l) -> l.location())
-				.filter((Optional<Integer> l) -> l.isPresent())
+				.map(LogEntry::location)
+				.filter(Optional::isPresent)
 				.reduce((fst, snd) -> snd) // take last element of (finite) stream
 				.orElse(Optional.empty());
 		BiFunction<Integer, Move, Double> score = (Integer d, Move m) -> gameTree.ItNegamax(
 				new ImmutableGameState(board, mrXLocation.orElse(1)).clone().advance(m),
-				3, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, mrXLocation, startTime, timeoutPair);
+				d, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, mrXLocation, startTime, timeoutPair);
 		Move move = null;
-		for (Integer d = 0; d < 3; d++) {
+		for (int d = 0; d < 3 ; d++) {
+			long curTime = timeoutPair.right().convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);  // check if almost timeOut
+			long oneSecond = timeoutPair.right().convert(1, TimeUnit.SECONDS);
+			if (timeoutPair.left() - (curTime - startTime) < oneSecond) {
+				break;
+			}
 			// BUG?
 			// Haven't tested, but since it's the same as in MrXAI... it's probably too slow
 			// and the iterative deepening implementation is probably shoddy.

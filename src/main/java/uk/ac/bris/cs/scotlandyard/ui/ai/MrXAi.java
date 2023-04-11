@@ -27,7 +27,12 @@ public class MrXAi implements Ai {
 				new ImmutableGameState(board, m.source()).clone().advance(m),
 				d, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Optional.of(m.source()), startTime, timeoutPair);
 		Move move = null;
-		for (Integer d = 0; d < 3; d++) {
+		for (int d = 0; d < 3; d++) {
+			long curTime = timeoutPair.right().convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);  // check if almost timeOut
+			long oneSecond = timeoutPair.right().convert(1, TimeUnit.SECONDS);
+			if (timeoutPair.left() - (curTime - startTime) < oneSecond) {
+				break;
+			}
 			// BUG
 			// - too slow
 			// - needs to run until time low
