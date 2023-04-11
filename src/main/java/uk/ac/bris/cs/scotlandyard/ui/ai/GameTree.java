@@ -13,7 +13,7 @@ public final class GameTree {
 
     // transposition table, mapping GameState::hashCode() to negamax result
     // used as a heuristic for ordering moves to improve α-β runtime
-    private Map<Integer, Double> trans;
+    private final Map<Integer, Double> trans;
 
     GameTree() {
         this.trans = new Hashtable<>();
@@ -133,6 +133,7 @@ public final class GameTree {
             }
 
             // TODO if the next move reveals the location, use DOUBLE is better choice (can increase the score)
+            //  also plus some credit if gameState.getAvailableMoves() is high
             // prefer to have secret tickets
             sum += 0.5 * gameState.getPlayerTickets(Piece.MrX.MRX).get().getCount(ScotlandYard.Ticket.SECRET);
             // prefer to have double moves, slightly LESS important than SECRET tickets

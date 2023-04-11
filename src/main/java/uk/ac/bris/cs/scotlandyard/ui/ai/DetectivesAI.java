@@ -28,7 +28,6 @@ public class DetectivesAI implements Ai {
 		// revealed, then empty
 		final Optional<Integer> mrXLocation = board.getMrXTravelLog()
 				.stream()
-				.sequential()
 				.map(LogEntry::location)
 				.filter(Optional::isPresent)
 				.reduce((fst, snd) -> snd) // take last element of (finite) stream

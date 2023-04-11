@@ -13,11 +13,6 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.collectingAndThen;
 
 public final class ImmutableGameState implements Board.GameState {
-    // attributes: (线程不安全)graph; mrX's location; detective's locations; remaining players Immu-Set,最开始是mrX; (线程安全)HashTable存放每个人剩余tickets
-    //				availableMoves;
-    // methods: getAvailableMoves; changeLocation(who, move);
-
-
     private final GameSetup setup;
     private ImmutableSet<Piece> remaining; // which pieces still need to make a move
     private ImmutableList<LogEntry> log;
@@ -25,8 +20,6 @@ public final class ImmutableGameState implements Board.GameState {
     private List<Player> detectives;
     private ImmutableSet<Move> moves;
     private final ImmutableSet<Piece> winner;
-
-    // TODO 在这创建一个单粒模式对象来作为constructor的synchronized锁 (0.1% of using lock like this, Piotr please ignore this)
 
     private ImmutableGameState(
             final GameSetup setup,
