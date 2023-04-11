@@ -26,9 +26,16 @@ public final class GameTree {
     public Double ItNegamax(ImmutableGameState state, Integer depth, Double alpha, Double beta,
             Optional<Integer> mrXLocation,
             final Long startTime, final Pair<Long, TimeUnit> timeoutPair) {
+        // TODO check timeout
+//        long curTime = timeoutPair.right().convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);  // check if almost timeOut
+//        long halfSecond = timeoutPair.right().convert(10L, TimeUnit.SECONDS);
+//        if (curTime - startTime + halfSecond > timeoutPair.left()) {
+//            return maximising ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
+//        }
+
 
         // is the next move by a different player?
-        Boolean changeSign = state.getRemaining().size() == 1;
+        boolean isMrX = state.getRemaining().contains(Piece.MrX.MRX);  // TODO (to delete) if like last version, there will be no difference between mrX and last detective in detectives
 
         if (state.getWinner().contains(Piece.MrX.MRX)) {
             trans.put(state.hashCode(), Double.POSITIVE_INFINITY);
@@ -44,21 +51,21 @@ public final class GameTree {
             return score;
         }
 
-        Double value = Double.NEGATIVE_INFINITY;
-        List<Move> moves = state.getAvailableMoves()
+        double value = Double.NEGATIVE_INFINITY;
+        List<Move> moves = state.getAvailableMoves()// TODO
                 .stream()
                 .sorted(Comparator
-                        .comparingDouble((Move m) -> trans.getOrDefault(state.clone().advance(m).hashCode(), 0.0))
+                        .comparingDouble((Move m) ->
+                                trans.getOrDefault(state.clone().advance(m).hashCode(),
+                                        score(state.clone().advance(m), m, mrXLocation, depth)))
                         .reversed())
                 .toList();
 
         for (Move m : moves) {
             // NB for this bit we're going to have to know what MrX's location is, or pass
-            // the empty value, just so long as it makes sense...
-            // will probably be worth looking at Eric's old code to see what he wrote
-
+            // the empty value
             final Optional<Integer> nextMrXLocation = mrXLocation.isPresent()
-                    ? m.commencedBy() == Piece.MrX.MRX
+                    ? isMrX
                             ? Optional.of(m.accept(new Move.Visitor<>() {
                                 @Override
                                 public Integer visit(SingleMove move) {
@@ -72,7 +79,7 @@ public final class GameTree {
                             }))
                             : mrXLocation
                     : Optional.empty();
-            value = Math.max(value, changeSign
+            value = Math.max(value, !isMrX
                     ? -ItNegamax(state.clone().advance(m), depth - 1, -beta, -alpha, nextMrXLocation, startTime,
                             timeoutPair)
                     : ItNegamax(state.clone().advance(m), depth - 1, alpha, beta, nextMrXLocation, startTime,
@@ -88,7 +95,7 @@ public final class GameTree {
     }
 
     // TODO this can probably be much simpler *and* much better...
-    // and should DRY
+    //  and should DRY
     // TODO and should follow FP...
     private static Double score(ImmutableGameState gameState, Move usedMove, Optional<Integer> mrXLocation,
             int curDepth) {
