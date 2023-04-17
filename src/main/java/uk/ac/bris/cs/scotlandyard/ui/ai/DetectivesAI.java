@@ -23,7 +23,7 @@ public class DetectivesAI implements Ai {
 	@Nonnull
 	@Override
 	public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
-		final Long startTime = timeoutPair.right().convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+		final long startTime = System.currentTimeMillis();
 		// Contains the last revealed location of MrX. If no location has yet been
 		// revealed, then empty
 		final Optional<Integer> mrXLocation = board.getMrXTravelLog()
@@ -37,7 +37,7 @@ public class DetectivesAI implements Ai {
 				d, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, mrXLocation, startTime, timeoutPair);
 		Move move = null;
 		for (int d = 0; d < 3 ; d++) {
-			long curTime = timeoutPair.right().convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);  // check if almost timeOut
+			long curTime = System.currentTimeMillis();  // check if almost timeOut
 			long oneSecond = timeoutPair.right().convert(1, TimeUnit.SECONDS);
 			if (timeoutPair.left() - (curTime - startTime) < oneSecond) {
 				break;
@@ -67,6 +67,12 @@ public class DetectivesAI implements Ai {
 					.min(Comparator.comparingDouble(m -> score.apply(depth, m)))
 					.get();
 		}
+
+		try {
+			assert move != null;
+		} catch (NullPointerException e) {
+			System.out.println(e.getMessage() + Thread.currentThread().getStackTrace()[2].getClassName());
+		}
 		return move;
 	}
 
@@ -76,7 +82,6 @@ public class DetectivesAI implements Ai {
 	}
 
 	@Override
-	public void onTerminate() {
-	} // TODO 每次timeout检查可以把这个函数传入minimax
+	public void onTerminate() {}
 
 }

@@ -22,7 +22,7 @@ public class MrXAi implements Ai {
 	@Nonnull
 	@Override
 	public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
-		final Long startTime = timeoutPair.right().convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+		final long startTime = System.currentTimeMillis();
 		BiFunction<Integer, Move, Double> score = (Integer d, Move m) -> gameTree.ItNegamax(
 				new ImmutableGameState(board, m.source()).clone().advance(m),
 				d, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Optional.of(m.source()), startTime, timeoutPair);
@@ -48,6 +48,12 @@ public class MrXAi implements Ai {
 					.max(Comparator.comparingDouble(m -> score.apply(depth, m)))
 					.get();
 		}
+
+		try {
+			assert move != null;
+		} catch (NullPointerException e) {
+			System.out.println(e.getMessage() + Thread.currentThread().getStackTrace()[2].getClassName());
+		}
 		return move;
 	}
 
@@ -57,7 +63,6 @@ public class MrXAi implements Ai {
 	}
 
 	@Override
-	public void onTerminate() {
-	}
+	public void onTerminate() {}
 
 }
