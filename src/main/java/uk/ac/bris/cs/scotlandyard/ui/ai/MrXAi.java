@@ -11,58 +11,61 @@ import uk.ac.bris.cs.scotlandyard.model.*;
 
 public class MrXAi implements Ai {
 
-	private GameTree gameTree;
+    private GameTree gameTree;
 
-	@Nonnull
-	@Override
-	public String name() {
-		return "MR.X";
-	}
+    @Nonnull
+    @Override
+    public String name() {
+        return "MR.X";
+    }
 
-	@Nonnull
-	@Override
-	public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
-		final long startTime = System.currentTimeMillis();
-		BiFunction<Integer, Move, Double> score = (Integer d, Move m) -> gameTree.ItNegamax(
-				new ImmutableGameState(board, m.source()).clone().advance(m),
-				d, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Optional.of(m.source()), startTime, timeoutPair);
-		Move move = null;
-		for (int d = 0; d < 3; d++) {
-			long curTime = timeoutPair.right().convert(System.currentTimeMillis(), TimeUnit.MILLISECONDS);  // check if almost timeOut
-			long oneSecond = timeoutPair.right().convert(1, TimeUnit.SECONDS);
-			if (timeoutPair.left() - (curTime - startTime) < oneSecond) {
-				break;
-			}
-			// BUG
-			// - too slow
-			// - needs to run until time low
-			// - iterative deepening sorting ineffective?
-			// - not clear on which moves are being sorted...
+    @Nonnull
+    @Override
+    public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
+        final long startTime = System.currentTimeMillis();
+        final long oneSecond = 1000;
 
-			// due to Java loop mechanics, d is not final, but we need a finally typed value
-			final Integer depth = d;
-			move = board
-					.getAvailableMoves()
-					.stream()
-					.parallel()
-					.max(Comparator.comparingDouble(m -> score.apply(depth, m)))
-					.get();
-		}
+        BiFunction<Integer, Move, Double> score = (Integer d, Move m) -> gameTree.ItNegamax(
+                new ImmutableGameState(board, m.source()).clone().advance(m),
+                d, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Optional.of(m.source()), startTime, timeoutPair);
 
-		try {
-			assert move != null;
-		} catch (NullPointerException e) {
-			System.out.println(e.getMessage() + Thread.currentThread().getStackTrace()[2].getClassName());
-		}
-		return move;
-	}
+        Move move = null;
+        for (int d = 0; d < 4; d++) {
+            long curTime = System.currentTimeMillis();  // check if almost timeOut
+            if (timeoutPair.left() * 1000 - (curTime - startTime) < oneSecond) {
+                break;
+            }
+            // BUG
+            // - too slow
+            // - needs to run until time low
+            // - iterative deepening sorting ineffective?
+            // - not clear on which moves are being sorted...
 
-	@Override
-	public void onStart() {
-		this.gameTree = new GameTree();
-	}
+            // due to Java loop mechanics, d is not final, but we need a finally typed value
+            final Integer depth = d;
+            move = board
+                    .getAvailableMoves()
+                    .stream()
+                    .parallel()
+                    .max(Comparator.comparingDouble(m -> score.apply(depth, m)))
+                    .get();
+        }
 
-	@Override
-	public void onTerminate() {}
+        try {
+            assert move != null;
+        } catch (NullPointerException e) {
+            System.out.println(e.getMessage() + " in MrX AI");
+        }
+        return move;
+    }
+
+    @Override
+    public void onStart() {
+        this.gameTree = new GameTree();
+    }
+
+    @Override
+    public void onTerminate() {
+    }
 
 }
