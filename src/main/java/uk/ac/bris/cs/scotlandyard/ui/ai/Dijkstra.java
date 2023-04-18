@@ -12,19 +12,19 @@ public final class Dijkstra {
         public int fromPoint;
         public int toPoint;
         public final int dist;
-        
+
         private Edge(int fromPoint, int toPoint, int dist) {
             this.fromPoint = fromPoint;
             this.toPoint = toPoint;
             this.dist = dist;
         }
     }
-    
+
     public int[] distTo;   // thread-safe
     private PriorityQueue<Edge> pq;
-    
+
     public Dijkstra(@Nonnull ImmutableGameState gameState, int detectLocation) {
-        distTo = new int[gameState.getSetup().graph.nodes().size()+1];  // locations start from 1
+        distTo = new int[gameState.getSetup().graph.nodes().size() + 1];  // locations start from 1
         Arrays.fill(distTo, Integer.MAX_VALUE);
         distTo[detectLocation] = 0;     // start from detective's location, good for `detectiveAI`
         pq = new PriorityQueue<>(gameState.getSetup().graph.nodes().size(), (e1, e2) -> distTo[e1.toPoint] - distTo[e2.toPoint]); // ascending
