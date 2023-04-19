@@ -143,6 +143,10 @@ public final class GameTree {
                 })
                 .reduce(0.0, Double::sum);
 
+        // Add bonuses for secret tickets and double moves
+        sum += gameState.getPlayerTickets(Piece.MrX.MRX).get().getCount(ScotlandYard.Ticket.SECRET) * SECRET_TICKET_BONUS;
+        sum += gameState.getPlayerTickets(Piece.MrX.MRX).get().getCount(ScotlandYard.Ticket.DOUBLE) * DOUBLE_TICKET_BONUS;
+
         return sum;
     }
 }

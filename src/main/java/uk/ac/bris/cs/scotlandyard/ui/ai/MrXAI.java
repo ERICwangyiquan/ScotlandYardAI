@@ -9,7 +9,7 @@ import javax.annotation.Nonnull;
 import io.atlassian.fugue.Pair;
 import uk.ac.bris.cs.scotlandyard.model.*;
 
-public class MrXAi implements Ai {
+public class MrXAI implements Ai {
 
     private GameTree gameTree;
 

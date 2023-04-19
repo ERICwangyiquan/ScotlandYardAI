@@ -20,7 +20,7 @@ public final class Dijkstra {
         }
     }
 
-    public int[] distTo;   // thread-safe
+    public int[] distTo;
     private PriorityQueue<Edge> pq;
 
     public Dijkstra(@Nonnull ImmutableGameState gameState, int detectLocation) {
