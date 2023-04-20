@@ -36,7 +36,15 @@ public class DetectivesAI implements Ai {
                 .map(LogEntry::location)
                 .filter(Optional::isPresent)
                 .reduce((fst, snd) -> snd) // take last element of (finite) stream
-                .orElse(Optional.empty());
+                .flatMap(lastLocation -> board.getSetup().moves.get(board.getMrXTravelLog().size() - 1) // predict the possible current location
+                        ? lastLocation
+                        : new ImmutableGameState(board, lastLocation.get()).getSetup().graph.adjacentNodes(lastLocation.get())
+                        .stream()
+                        .unordered()
+                        .parallel()
+                        .findAny()
+                );
+
 
         BiFunction<Integer, Move, Double> score = (Integer d, Move m) -> gameTree.ItNegamax(
                 new ImmutableGameState(board, mrXLocation.orElse(1)).clone().advance(m),

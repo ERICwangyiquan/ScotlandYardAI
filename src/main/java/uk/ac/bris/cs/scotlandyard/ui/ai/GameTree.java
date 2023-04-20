@@ -21,18 +21,8 @@ public final class GameTree {
     private static final double DOUBLE_TICKET_BONUS = 0.5;
     private static final double DISTANCE_WEIGHT = 1.0;
     private static final double LOG_DISTANCE_WEIGHT = 20.0;
-    private static final double AVAILABLE_MOVES_BONUS = 0.3;
-    // transposition table, mapping GameState::hashCode() to negamax result
-    // used as a heuristic for ordering moves to improve α-β runtime
-    private final Map<Integer, Double> trans;
+    private static final double AVAILABLE_MOVES_BONUS = 0.4;
 
-    GameTree() {
-        this.trans = new Hashtable<>();
-    } // for thread-safe
-
-    // NOTE we COULD use the log to filter out the nodes at which MrX
-    // /could/ be... though in practice this is not useful, since they're
-    // all Taxi or Secret...
     private static Double score(ImmutableGameState gameState, Optional<Integer> mrXLocation,
                                 int curDepth, boolean isMrX) {
 
@@ -106,25 +96,23 @@ public final class GameTree {
         }
 
         if (state.getWinner().contains(Piece.MrX.MRX)) {
-            trans.put(state.hashCode(), Double.POSITIVE_INFINITY);
             return Double.POSITIVE_INFINITY;
         } else if (!state.getWinner().isEmpty()) {
-            trans.put(state.hashCode(), Double.NEGATIVE_INFINITY);
             return Double.NEGATIVE_INFINITY;
         }
 
         if (depth == 0) {
-            Double score = score(state, mrXLocation, depth, isMrX);
-            trans.put(state.hashCode(), score);
-            return score;
+            return score(state, mrXLocation, depth, isMrX);
         }
 
         double value = Double.NEGATIVE_INFINITY;
         List<Move> moves = state.getAvailableMoves()
                 .stream()
-                .unordered()
+                .unordered()    //shuffle the list and choose random 8 moves, 8 is small,
+                // but we use iterative deepening BFS, so the `real-current` list for next moves of AI
+                // will be shuffled 3 times in total (when max depth is 3)
                 .parallel()
-                .limit(10)
+                .limit(8)
                 .toList();
 
         for (Move m : moves) {
@@ -156,7 +144,6 @@ public final class GameTree {
                 break;
             }
         }
-        trans.put(state.hashCode(), value);
         return value;
     }
 }
