@@ -1,13 +1,15 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 
-import java.util.concurrent.TimeUnit;
-import java.util.function.*;
-import java.util.*;
+import io.atlassian.fugue.Pair;
+import uk.ac.bris.cs.scotlandyard.model.Ai;
+import uk.ac.bris.cs.scotlandyard.model.Board;
+import uk.ac.bris.cs.scotlandyard.model.Move;
 
 import javax.annotation.Nonnull;
-
-import io.atlassian.fugue.Pair;
-import uk.ac.bris.cs.scotlandyard.model.*;
+import java.util.Comparator;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 
 public class MrXAI implements Ai {
 
@@ -35,11 +37,6 @@ public class MrXAI implements Ai {
             if (timeoutPair.left() * 1000 - (curTime - startTime) < oneSecond) {
                 break;
             }
-            // BUG
-            // - too slow
-            // - needs to run until time low
-            // - iterative deepening sorting ineffective?
-            // - not clear on which moves are being sorted...
 
             // due to Java loop mechanics, d is not final, but we need a finally typed value
             final Integer depth = d;
@@ -56,6 +53,7 @@ public class MrXAI implements Ai {
         } catch (NullPointerException e) {
             System.out.println(e.getMessage() + " in MrX AI");
         }
+
         return move;
     }
 

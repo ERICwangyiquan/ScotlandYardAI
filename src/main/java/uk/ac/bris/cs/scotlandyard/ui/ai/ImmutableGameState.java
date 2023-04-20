@@ -14,12 +14,12 @@ import static java.util.stream.Collectors.collectingAndThen;
 
 public final class ImmutableGameState implements Board.GameState {
     private final GameSetup setup;
+    private final ImmutableSet<Piece> winner;
     private ImmutableSet<Piece> remaining; // which pieces still need to make a move
     private ImmutableList<LogEntry> log;
     private Player mrX;
     private List<Player> detectives;
     private ImmutableSet<Move> moves;
-    private final ImmutableSet<Piece> winner;
 
     private ImmutableGameState(
             final GameSetup setup,
@@ -96,6 +96,9 @@ public final class ImmutableGameState implements Board.GameState {
         this.winner = gameState.winner.stream().collect(collectingAndThen(Collectors.toSet(), ImmutableSet::copyOf));
     }
 
+    private static @Nonnull ImmutableGameState of(ImmutableGameState gameState) {
+        return new ImmutableGameState(gameState);
+    }
 
     protected ImmutableGameState clone() {
         return ImmutableGameState.of(this);
@@ -347,9 +350,5 @@ public final class ImmutableGameState implements Board.GameState {
 
     public List<Player> getDetectives() {
         return detectives;
-    }
-
-    private static @Nonnull ImmutableGameState of(ImmutableGameState gameState) {
-        return new ImmutableGameState(gameState);
     }
 }

@@ -1,15 +1,16 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 
 import io.atlassian.fugue.Pair;
-
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.function.*;
-import java.util.*;
+import uk.ac.bris.cs.scotlandyard.model.Ai;
+import uk.ac.bris.cs.scotlandyard.model.Board;
+import uk.ac.bris.cs.scotlandyard.model.LogEntry;
+import uk.ac.bris.cs.scotlandyard.model.Move;
 
 import javax.annotation.Nonnull;
-
-import uk.ac.bris.cs.scotlandyard.model.*;
+import java.util.Comparator;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 
 public class DetectivesAI implements Ai {
 
@@ -47,21 +48,6 @@ public class DetectivesAI implements Ai {
             if (timeoutPair.left() * 1000 - (curTime - startTime) < oneSecond) {
                 break;
             }
-            // BUG?
-            // Haven't tested, but since it's the same as in MrXAI... it's probably too slow
-            // and the iterative deepening implementation is probably shoddy.
-
-            // Think I've just misunderstood how to make use of it? The idea is
-            // to use iterative depening to order the moves via a transposition
-            // table, however I now don't think I really understood how to make
-            // that work -- that would mean the sorting is useless and so
-            // there's not enough pruning. The main way in which we can improve runtime
-            // is with better algorithms and heuristics, in particular pruning. We can use
-            // parallel programming here, but overusing it is a bit useless...
-
-            // We also need to find a way to make proper use of time management
-            // AT THE SAME TIME as parallel programming -- the use of iterative
-            // deepening should help in a similar way and might be intertwined.
 
             // due to Java loop mechanics, d is not final, but we need finally typed value
             final Integer depth = d;

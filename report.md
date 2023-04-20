@@ -84,13 +84,17 @@ lorem ipsum
 draft:
 ### `cw-model`
 - visitor pattern in advance()
+- 
 
 ### `cw-ai`
 - Iterative deepening Negamax algorithm
+- parallel programming/ implementation of multi-threads
 - factory pattern & adapter pattern for clone() in `GameState`
 - visitor pattern in ItNegamax()
 - alpha-beta pruning
+- comprehensive score function
 
 ## `limitations`
 
-lorem ipsum
+- granularity of multi-threads is big
+- 

@@ -8,18 +8,6 @@ import java.util.stream.Collectors;
 
 
 public final class Dijkstra {
-    public static final class Edge {
-        public int fromPoint;
-        public int toPoint;
-        public final int dist;
-
-        private Edge(int fromPoint, int toPoint, int dist) {
-            this.fromPoint = fromPoint;
-            this.toPoint = toPoint;
-            this.dist = dist;
-        }
-    }
-
     public int[] distTo;
     private PriorityQueue<Edge> pq;
 
@@ -48,6 +36,18 @@ public final class Dijkstra {
             } else {
                 pq.add(e);
             }
+        }
+    }
+
+    public static final class Edge {
+        public final int dist;
+        public int fromPoint;
+        public int toPoint;
+
+        private Edge(int fromPoint, int toPoint, int dist) {
+            this.fromPoint = fromPoint;
+            this.toPoint = toPoint;
+            this.dist = dist;
         }
     }
 }
