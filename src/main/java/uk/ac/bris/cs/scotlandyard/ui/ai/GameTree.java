@@ -63,11 +63,12 @@ public final class GameTree {
         AtomicBoolean weightNeeded = new AtomicBoolean(distList.get(0) <= 5);
         double sum = distList.stream()
                 .map(dist -> {
-                    // *** greedy *** // TODO put this into report multiply
-                    // `curDepth` since the right next move is more important than
-                    // other future moves multiply `weight` since more close the
-                    // detective is to MrX, more important to get away from them
-                    // logarithm is doing the same thing here but might be less
+                    // *** greedy *** // TODO put this into report
+                    // - Multiply `curDepth` since the right next move is
+                    // more important than other future moves multiply
+                    // - Multiply `weight` since more close the detective
+                    // is to MrX, more important to get away from them
+                    // - Logarithm is doing the same thing here but might be less
                     // obvious if the all the distances are small;
                     double moveScore = (curDepth + 1) * dist * (weightNeeded.get() ? 15 : 1) *
                             DISTANCE_WEIGHT;
