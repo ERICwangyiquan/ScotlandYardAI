@@ -100,7 +100,7 @@ public final class ImmutableGameState implements Board.GameState {
         return new ImmutableGameState(gameState);
     }
 
-    protected ImmutableGameState clone() {
+    private ImmutableGameState cloneState() {
         return ImmutableGameState.of(this);
     }
 
@@ -350,5 +350,9 @@ public final class ImmutableGameState implements Board.GameState {
 
     public List<Player> getDetectives() {
         return detectives;
+    }
+
+    public ImmutableGameState newState (Move move) {
+        return this.cloneState().advance(move);
     }
 }

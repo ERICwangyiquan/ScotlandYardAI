@@ -55,7 +55,7 @@ public final class GameTree {
                 .map(dist -> {
                     // *** greedy *** // TODO put this into report
                     // - Multiply `curDepth` since the right next move is
-                    // more important than other future moves multiply
+                    // more important than other future moves
                     // - Multiply `weight` since more close the detective
                     // is to MrX, more important to get away from them
                     // - Logarithm is doing the same thing here but might be less
@@ -80,7 +80,7 @@ public final class GameTree {
         return sum;
     }
 
-    public Double ItNegamax(ImmutableGameState state, Integer depth, Double alpha, Double beta,
+    public Double itNegaMax(ImmutableGameState state, Integer depth, Double alpha, Double beta,
                             Optional<Integer> mrXLocation,
                             final Long startTime, final Pair<Long, TimeUnit> timeoutPair) {
 
@@ -134,9 +134,9 @@ public final class GameTree {
                     : mrXLocation
                     : Optional.empty();
             value = Math.max(value, changeSign
-                    ? -ItNegamax(state.clone().advance(m), depth - 1, -beta, -alpha, nextMrXLocation, startTime,
+                    ? -itNegaMax(state.newState(m), depth - 1, -beta, -alpha, nextMrXLocation, startTime,
                     timeoutPair)
-                    : ItNegamax(state.clone().advance(m), depth - 1, alpha, beta, nextMrXLocation, startTime,
+                    : itNegaMax(state.newState(m), depth - 1, alpha, beta, nextMrXLocation, startTime,
                     timeoutPair));
 
             alpha = Math.max(alpha, value);

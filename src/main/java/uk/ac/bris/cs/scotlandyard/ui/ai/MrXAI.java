@@ -27,8 +27,8 @@ public class MrXAI implements Ai {
         final long startTime = System.currentTimeMillis();
         final long oneSecond = 1000;
 
-        BiFunction<Integer, Move, Double> score = (Integer d, Move m) -> gameTree.ItNegamax(
-                new ImmutableGameState(board, m.source()).clone().advance(m),
+        BiFunction<Integer, Move, Double> score = (Integer d, Move m) -> gameTree.itNegaMax(
+                new ImmutableGameState(board, m.source()).newState(m),
                 d, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Optional.of(m.source()), startTime, timeoutPair);
 
         Move move = null;

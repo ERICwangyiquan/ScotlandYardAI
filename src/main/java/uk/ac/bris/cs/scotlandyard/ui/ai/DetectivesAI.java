@@ -40,14 +40,12 @@ public class DetectivesAI implements Ai {
                         ? lastLocation
                         : new ImmutableGameState(board, lastLocation.get()).getSetup().graph.adjacentNodes(lastLocation.get())
                         .stream()
-                        .unordered()
-                        .parallel()
-                        .findAny()
+                        .findAny()  // get a random adjacent location
                 );
 
 
-        BiFunction<Integer, Move, Double> score = (Integer d, Move m) -> gameTree.ItNegamax(
-                new ImmutableGameState(board, mrXLocation.orElse(1)).clone().advance(m),
+        BiFunction<Integer, Move, Double> score = (Integer d, Move m) -> gameTree.itNegaMax(
+                new ImmutableGameState(board, mrXLocation.orElse(1)).newState(m),
                 d, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, mrXLocation, startTime, timeoutPair);
 
         Move move = null;

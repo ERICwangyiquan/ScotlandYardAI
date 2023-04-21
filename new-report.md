@@ -30,7 +30,7 @@ the tests. As per the coursework, we implemented a factory class and
 demonstrated an understanding of the observer design pattern, via the `MyModel`
 class which needs to make use of the `Observer` class, as well as the visitor
 pattern. Wherever possible, we have tried to make use of Java's `Stream` class,
-providing a functional approach, which permits easy parallelisation (much more
+providing a functional approach, which permits easy parallelization (much more
 in this in [`cw-ai`]). The Iterable pattern was also useful throughout.
 
 We have provided some utility functions as well, in particular
@@ -71,3 +71,55 @@ TODO:
 - Piotr, write about ItNegamax, FP
 - decide who will write about alpha-beta and GameTree
 --->
+
+For cw-ai part, we have created both MrXAI and DetectivesAI with a NegaMax game tree. 
+-  Extremely neat and understandable code by using Functional Programming style 
+---
+First, we made an independent class named `Dijkstra` for the shortest distance algorithm.
+- Encapsulation as OOP style
+- Clever use of Data Structures 
+---
+Then we created `GameTree` class which contains `score` method and `itNegaMax` method
+- Greedy algorithm to calculate the distance between MrX and Detectives
+- Comprehensive considerations for each circumstance
+- Time-limit check to insure the maximum calculations in the limited time
+- Heuristic Programming when iterating the possible next moves 
+- alpha-beta pruning
+  - (TODO More details could be extended here)
+- Cleaner code by implementation of NegaMax algorithm instead of MiniMax algorithm
+  - (TODO More details could be extended here? look what Piotr sent to Eric on WhatsApp 
+  about NegaMax and iterative deepening!!)
+
+#### `limitations` 
+If we have more time, we could find better weights for each aspect considered by AI
+in score function. 
+---
+For better and independent simulations of the Board, we made the class `ImmutableGameState`,
+- Wrapper `newState()` for a better encapsulation
+- Factory pattern & Adapter pattern for `cloneState()`
+- All merits for cw-model task
+
+#### `limitations`
+Space allocated by the instantiations of `ImmutableGameState` instance is big.
+
+---
+Finally, for the top-level API, i.e. `MrXAI` 
+- Iterative Deepening Breadth-First Search(IDBFS)
+  - (TODO see the WhatsApp message for the benefits of IDBFS compared to DFS)
+  - Compared to Breadth-First Search(BFS), because we predict the next possible
+  move in the heuristic way in `itNegaMax()` in `GameTree`, IDBFS can let AI have less chance to miss the optimal
+  move.
+- Usage of BiFunction class, improve the cleanness of the code
+- Time-limit check in each level of IDBFS
+- Parallelization(i.e. multi-threads) for each level of IDBFS
+
+#### `limitations`
+Big granularity of multi-threads.
+
+---
+And `DetectivesAI`
+- All the merits for `MrXAI`
+- Prediction for the possible current location for MrX
+
+#### `limitations`
+Same as `MrXAI`
