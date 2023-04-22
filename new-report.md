@@ -94,9 +94,10 @@ Then we created `GameTree` class which contains `score` method and `itNegaMax` m
 If we have more time, we could find better weights for each aspect considered by AI
 in score function. 
 ---
-For better and independent simulations of the Board, we made the class `ImmutableGameState`,
+For better and independent simulations of the Board, we made the class `ImmutableGameState`.
 - Wrapper `newState()` for a better encapsulation
 - Factory pattern & Adapter pattern for `cloneState()`
+- Ensure thread-safety
 - All merits for cw-model task
 
 #### `limitations`
