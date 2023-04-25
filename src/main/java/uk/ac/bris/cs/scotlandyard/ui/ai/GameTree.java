@@ -36,6 +36,8 @@ public final class GameTree {
                                     .log(dijkstraFunc.apply(detective.location()).distTo[otherDetective.location()])
                                     * LOG_DISTANCE_WEIGHT))
                     .reduce(0.0, Double::sum);
+
+            sum += gameState.getAvailableMoves().size() * AVAILABLE_MOVES_BONUS;
             return -sum;
         }
 
@@ -53,7 +55,7 @@ public final class GameTree {
         AtomicBoolean weightNeeded = new AtomicBoolean(distList.get(0) <= 5);
         double sum = distList.stream()
                 .map(dist -> {
-                    // *** greedy *** // TODO put this into report
+                    // greedy
                     // - Multiply `curDepth` since the right next move is
                     // more important than other future moves
                     // - Multiply `weight` since more close the detective

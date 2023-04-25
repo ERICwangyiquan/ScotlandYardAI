@@ -191,3 +191,31 @@ TODO merits and limitations
 ### iterative deepening
 
 TODO merits and limitations
+
+
+---
+# TODO use this as merits and limitations of parallelization
+#### `Thoughts for Multi-threads,`
+#### `and Explainations for final implementation of it` - `by @Eric(YiQuan Wang)`
+In both AI class,`.stream.parallel` allocate new thread when the AI comes to next
+iteration in Iterative-Deepening-Breadth-First-Search, he was afraid
+the `Granularity` of multi-threads is too big if doing so, so he tried
+to make a customised multiThread version with smaller granularity, and the second
+big granularity for this program is to create a new thread when `ItNegamax()`
+method is called recursively. And this will cause exponential amount of new
+threads be created during the recursion, this might make the program slower
+by making `Context Switching` happens too frequently, in this case is mainly
+because threads will be switched out of the CPU when it exceeds its `time
+slice` and when the system transitions between user mode and kernel mode.
+
+So `Eric` give up on this solution. After this, he searched that `.stream.parallel`
+will use `ForkJoinWorkerThread` class as underlying code, he considered if
+`ThreadPoolExecutor` class is more suitable under this scenario. The
+difference he knows between this and `ThreadPoolExecutor` class is
+`ForkJoinWorkerThread` class uses Fork/Join framework and one of the most
+significant features of `Fork/Join framework` is its Work-Stealing Algorithm.
+
+But for our AI, some move will lead to the creation of a deep Negamax tree,
+while some will finish the game early, this will cause the imbalance of each task
+which is each thread, so the Work-Stealing algorithm is very useful in this
+case, so he chose to keep `.stream.parralel` at last.
