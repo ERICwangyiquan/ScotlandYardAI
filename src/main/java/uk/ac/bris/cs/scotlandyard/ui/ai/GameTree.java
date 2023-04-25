@@ -23,103 +23,97 @@ public final class GameTree {
     private static final double LOG_DISTANCE_WEIGHT = 20.0;
     private static final double AVAILABLE_MOVES_BONUS = 0.4;
 
-    private static Double score(ImmutableGameState gameState, Optional<Integer> mrXLocation,
+    private static double score(ImmutableGameState gameState, Optional<Integer> mrXLocation,
                                 int curDepth, boolean isMrX) {
-
-        // if the move is a detective move AND we don't know where MrX has been
         if (mrXLocation.isEmpty()) {
-            Function<Integer, Dijkstra> dijkstraFunc = (Integer loc) -> new Dijkstra(gameState, loc);
-            double sum = gameState.getDetectives().stream()
-                    .flatMap(detective -> gameState.getDetectives().stream()
-                            .filter(otherDetective -> !detective.equals(otherDetective))
-                            .map(otherDetective -> Math
-                                    .log(dijkstraFunc.apply(detective.location()).distTo[otherDetective.location()])
-                                    * LOG_DISTANCE_WEIGHT))
-                    .reduce(0.0, Double::sum);
-
+            // if the move is a detective move AND we don't know where MrX has been
+            double sum = calculateDetectiveScore(gameState);
             sum += gameState.getAvailableMoves().size() * AVAILABLE_MOVES_BONUS;
             return -sum;
         }
 
-        Integer location = mrXLocation.get();
-        Dijkstra dijkstra = new Dijkstra(gameState, location);
+        int location = mrXLocation.get();
+        double sum = calculateMrXScore(gameState, location, curDepth);
+        sum += calculateBonuses(gameState, isMrX);
+        return sum;
+    }
 
-        // calculate score by distance from detectives
-        List<Double> distList = gameState.getDetectives().stream()
-                .map(detective -> Math.log((dijkstra.distTo[detective.location()] - 1) / 3.5) * LOG_DISTANCE_WEIGHT)
+    private static double calculateDetectiveScore(ImmutableGameState gameState) {
+        List<Double> distances = gameState.getDetectives().stream()
+                .flatMap(detective1 -> gameState.getDetectives().stream()
+                        .filter(detective2 -> !detective1.equals(detective2))
+                        .map(detective2 -> calculateLogDistance(gameState, detective1.location(), detective2.location())))
                 .sorted()
                 .toList();
+        double sum = distances.stream()
+                .reduce(0.0, Double::sum);
+        return sum;
+    }
 
-        // if the minimum distance from any detectives is less than 3, make this
-        // aspect higher priority
-        AtomicBoolean weightNeeded = new AtomicBoolean(distList.get(0) <= 5);
-        double sum = distList.stream()
+    private static double calculateMrXScore(ImmutableGameState gameState, int location, int curDepth) {
+        List<Double> distances = gameState.getDetectives().stream()
+                .map(detective -> calculateLogDistance(gameState, location, detective.location()))
+                .sorted()
+                .toList();
+        double sum = distances.stream()
                 .map(dist -> {
-                    // greedy
-                    // - Multiply `curDepth` since the right next move is
-                    // more important than other future moves
-                    // - Multiply `weight` since more close the detective
-                    // is to MrX, more important to get away from them
-                    // - Logarithm is doing the same thing here but might be less
-                    // obvious if the all the distances are small;
-                    double moveScore = (curDepth + 1) * dist * (weightNeeded.get() ? 15 : 1) *
-                            DISTANCE_WEIGHT;
-                    if (dist > 5 && weightNeeded.get()) {
-                        weightNeeded.set(false);
+                    double moveScore = (curDepth + 1) * dist * DISTANCE_WEIGHT;
+                    if (dist <= 5) {
+                        moveScore *= 15;
                     }
                     return moveScore;
                 })
                 .reduce(0.0, Double::sum);
-
-        // Add bonuses for secret tickets and double moves
-        sum += gameState.getPlayerTickets(Piece.MrX.MRX).get().getCount(ScotlandYard.Ticket.SECRET) * SECRET_TICKET_BONUS;
-        sum += gameState.getPlayerTickets(Piece.MrX.MRX).get().getCount(ScotlandYard.Ticket.DOUBLE) * DOUBLE_TICKET_BONUS;
-
-        // Add bonuses for have more available moves.
-        // the value of sum smaller is better to detectives, vice versa
-        sum += (isMrX ? 1 : -1) * gameState.getAvailableMoves().size() * AVAILABLE_MOVES_BONUS;
-
         return sum;
     }
 
-    public Double itNegaMax(ImmutableGameState state, Integer depth, Double alpha, Double beta,
-                            Optional<Integer> mrXLocation,
-                            final Long startTime, final Pair<Long, TimeUnit> timeoutPair) {
+    private static double calculateLogDistance(ImmutableGameState gameState, int location1, int location2) {
+        return Math.log((new Dijkstra(gameState, location1).distTo[location2] - 1) / 3.5) * LOG_DISTANCE_WEIGHT;
+    }
 
-        // is the next move by a different player?
+    private static double calculateBonuses(ImmutableGameState gameState, boolean isMrX) {
+        double sum = 0.0;
+        sum += gameState.getPlayerTickets(Piece.MrX.MRX).get().getCount(ScotlandYard.Ticket.SECRET) * SECRET_TICKET_BONUS;
+        sum += gameState.getPlayerTickets(Piece.MrX.MRX).get().getCount(ScotlandYard.Ticket.DOUBLE) * DOUBLE_TICKET_BONUS;
+        sum += (isMrX ? 1 : -1) * gameState.getAvailableMoves().size() * AVAILABLE_MOVES_BONUS;
+        return sum;
+    }
+
+
+    public Double itNegaMax(ImmutableGameState state, int depth, double alpha, double beta,
+                            Optional<Integer> mrXLocation, long startTime, Pair<Long, TimeUnit> timeoutPair) {
         boolean changeSign = state.getRemaining().size() == 1;
-
-        // check timeout
         boolean isMrX = state.getRemaining().contains(Piece.MrX.MRX);
-        long curTime = System.currentTimeMillis(); // check if almost timeOut
+
+        // Check timeout
+        long curTime = System.currentTimeMillis();
         long oneSecond = 1000;
         if (timeoutPair.left() * 1000 - (curTime - startTime) < oneSecond) {
             return isMrX ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
         }
 
+        // Check for winner
         if (state.getWinner().contains(Piece.MrX.MRX)) {
             return Double.POSITIVE_INFINITY;
         } else if (!state.getWinner().isEmpty()) {
             return Double.NEGATIVE_INFINITY;
         }
 
+        // Compute score at maximum depth
         if (depth == 0) {
             return score(state, mrXLocation, depth, isMrX);
         }
 
-        double value = Double.NEGATIVE_INFINITY;
+        // Find available moves
         List<Move> moves = state.getAvailableMoves()
                 .stream()
-                .unordered()    //shuffle the list and choose random 8 moves, 8 is small,
-                // but we use iterative deepening BFS, so the `real-current` list for next moves of AI
-                // will be shuffled 3 times in total (when max depth is 3)
+                .unordered()
                 .parallel()
                 .limit(8)
                 .toList();
 
+        double value = Double.NEGATIVE_INFINITY;
         for (Move m : moves) {
-            // NB for this bit we're going to have to know what MrX's location is, or pass
-            // the empty value
             final Optional<Integer> nextMrXLocation = mrXLocation.isPresent()
                     ? changeSign
                     ? Optional.of(m.accept(new Move.Visitor<>() {
@@ -135,12 +129,14 @@ public final class GameTree {
             }))
                     : mrXLocation
                     : Optional.empty();
-            value = Math.max(value, changeSign
+
+            double newValue = changeSign
                     ? -itNegaMax(state.newState(m), depth - 1, -beta, -alpha, nextMrXLocation, startTime,
                     timeoutPair)
                     : itNegaMax(state.newState(m), depth - 1, alpha, beta, nextMrXLocation, startTime,
-                    timeoutPair));
+                    timeoutPair);
 
+            value = Math.max(value, newValue);
             alpha = Math.max(alpha, value);
             if (alpha >= beta) {
                 break;
@@ -148,4 +144,5 @@ public final class GameTree {
         }
         return value;
     }
+
 }
