@@ -5,15 +5,15 @@ import uk.ac.bris.cs.scotlandyard.model.Move;
 import uk.ac.bris.cs.scotlandyard.model.Move.DoubleMove;
 import uk.ac.bris.cs.scotlandyard.model.Move.SingleMove;
 import uk.ac.bris.cs.scotlandyard.model.Piece;
+import uk.ac.bris.cs.scotlandyard.model.Player;
 import uk.ac.bris.cs.scotlandyard.model.ScotlandYard;
 
-import java.util.Hashtable;
+import java.sql.*;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 public final class GameTree {
 
@@ -24,36 +24,70 @@ public final class GameTree {
     private static final double AVAILABLE_MOVES_BONUS = 0.4;
 
     private static Double score(ImmutableGameState gameState, Optional<Integer> mrXLocation,
-                                int curDepth, boolean isMrX) {
+                                int curDepth, boolean isMrX, Connection conn) {
+
 
         // if the move is a detective move AND we don't know where MrX has been
         if (mrXLocation.isEmpty()) {
-            Function<Integer, Dijkstra> dijkstraFunc = (Integer loc) -> new Dijkstra(gameState, loc);
+            // MySQL version
+            BiFunction<Integer, Integer, Integer> mysqlFunc = (loc, detectiveLoc) -> {
+                String checkSql = "SELECT * FROM all_distances WHERE searchKey=" + ((loc-1)*199 + detectiveLoc) + ";";
+                try (Statement stmt = conn.createStatement();
+                     ResultSet checkRs = stmt.executeQuery(checkSql)) {
+                    if (checkRs.next()) { // move cursor to first row
+                        int distance = checkRs.getInt("distance");
+                        return distance;
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+                return 0;
+            };
+
+            // Real-time dijkstra version
+//            BiFunction<Integer, Integer, Integer> dijkstraFunc = (loc, detectiveLoc) -> new Dijkstra(gameState, loc).distTo[detectiveLoc];
+
             double sum = gameState.getDetectives().stream()
                     .flatMap(detective -> gameState.getDetectives().stream()
                             .filter(otherDetective -> !detective.equals(otherDetective))
                             .map(otherDetective -> Math
-                                    .log(dijkstraFunc.apply(detective.location()).distTo[otherDetective.location()])
+//                                    .log(dijkstraFunc.apply(detective.location(), otherDetective.location()))
+                                    .log(mysqlFunc.apply(detective.location(), otherDetective.location()))
                                     * LOG_DISTANCE_WEIGHT))
                     .reduce(0.0, Double::sum);
+
+            sum += gameState.getAvailableMoves().size() * AVAILABLE_MOVES_BONUS;
+
             return -sum;
         }
 
         Integer location = mrXLocation.get();
-        Dijkstra dijkstra = new Dijkstra(gameState, location);
+//        Dijkstra dijkstra = new Dijkstra(gameState, location);
 
         // calculate score by distance from detectives
         List<Double> distList = gameState.getDetectives().stream()
-                .map(detective -> Math.log((dijkstra.distTo[detective.location()] - 1) / 3.5) * LOG_DISTANCE_WEIGHT)
+//                .map(detective -> Math.log((dijkstra.distTo[detective.location()] - 1) / 3.5) * LOG_DISTANCE_WEIGHT)
+                .map(detective -> {
+                    int distance = 0;
+                    String checkSql = "SELECT distance FROM all_distances WHERE searchKey=" + ((location-1)*199 + detective.location()) + ";";
+                    try (Statement stmt = conn.createStatement();
+                         ResultSet checkRs = stmt.executeQuery(checkSql)) {
+                        if (checkRs.next()) { // move cursor to first row
+                            distance = checkRs.getInt("distance");
+                        }
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                    }
+                    return Math.log((distance - 1) / 3.5) * LOG_DISTANCE_WEIGHT;
+                })
                 .sorted()
                 .toList();
 
-        // if the minimum distance from any detectives is less than 3, make this
-        // aspect higher priority
+        // if the minimum distance from any detectives is less than 3, make this aspect higher priority
         AtomicBoolean weightNeeded = new AtomicBoolean(distList.get(0) <= 5);
         double sum = distList.stream()
                 .map(dist -> {
-                    // *** greedy *** // TODO put this into report
+                    // greedy
                     // - Multiply `curDepth` since the right next move is
                     // more important than other future moves
                     // - Multiply `weight` since more close the detective
@@ -82,7 +116,7 @@ public final class GameTree {
 
     public Double itNegaMax(ImmutableGameState state, Integer depth, Double alpha, Double beta,
                             Optional<Integer> mrXLocation,
-                            final Long startTime, final Pair<Long, TimeUnit> timeoutPair) {
+                            final Long startTime, final Pair<Long, TimeUnit> timeoutPair, Connection conn) {
 
         // is the next move by a different player?
         boolean changeSign = state.getRemaining().size() == 1;
@@ -102,7 +136,7 @@ public final class GameTree {
         }
 
         if (depth == 0) {
-            return score(state, mrXLocation, depth, isMrX);
+            return score(state, mrXLocation, depth, isMrX, conn);
         }
 
         double value = Double.NEGATIVE_INFINITY;
@@ -135,9 +169,9 @@ public final class GameTree {
                     : Optional.empty();
             value = Math.max(value, changeSign
                     ? -itNegaMax(state.newState(m), depth - 1, -beta, -alpha, nextMrXLocation, startTime,
-                    timeoutPair)
+                    timeoutPair, conn)
                     : itNegaMax(state.newState(m), depth - 1, alpha, beta, nextMrXLocation, startTime,
-                    timeoutPair));
+                    timeoutPair, conn));
 
             alpha = Math.max(alpha, value);
             if (alpha >= beta) {
