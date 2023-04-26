@@ -24,7 +24,7 @@ public final class GameTree {
     private static final double AVAILABLE_MOVES_BONUS = 0.4;
 
     private static double score(ImmutableGameState gameState, Optional<Integer> mrXLocation,
-                                int curDepth, boolean isMrX) {
+            int curDepth, boolean isMrX) {
         if (mrXLocation.isEmpty()) {
             // if the move is a detective move AND we don't know where MrX has been
             double sum = calculateDetectiveScore(gameState);
@@ -42,7 +42,8 @@ public final class GameTree {
         List<Double> distances = gameState.getDetectives().stream()
                 .flatMap(detective1 -> gameState.getDetectives().stream()
                         .filter(detective2 -> !detective1.equals(detective2))
-                        .map(detective2 -> calculateLogDistance(gameState, detective1.location(), detective2.location())))
+                        .map(detective2 -> calculateLogDistance(gameState, detective1.location(),
+                                detective2.location())))
                 .sorted()
                 .toList();
         double sum = distances.stream()
@@ -68,20 +69,21 @@ public final class GameTree {
     }
 
     private static double calculateLogDistance(ImmutableGameState gameState, int location1, int location2) {
-        return Math.log((new Dijkstra(gameState, location1).distTo[location2] - 1) / 3.5) * LOG_DISTANCE_WEIGHT;
+        return Math.log((new Dijkstra(gameState, location1).getDistTo(location2) - 1) / 3.5) * LOG_DISTANCE_WEIGHT;
     }
 
     private static double calculateBonuses(ImmutableGameState gameState, boolean isMrX) {
         double sum = 0.0;
-        sum += gameState.getPlayerTickets(Piece.MrX.MRX).get().getCount(ScotlandYard.Ticket.SECRET) * SECRET_TICKET_BONUS;
-        sum += gameState.getPlayerTickets(Piece.MrX.MRX).get().getCount(ScotlandYard.Ticket.DOUBLE) * DOUBLE_TICKET_BONUS;
+        sum += gameState.getPlayerTickets(Piece.MrX.MRX).get().getCount(ScotlandYard.Ticket.SECRET)
+                * SECRET_TICKET_BONUS;
+        sum += gameState.getPlayerTickets(Piece.MrX.MRX).get().getCount(ScotlandYard.Ticket.DOUBLE)
+                * DOUBLE_TICKET_BONUS;
         sum += (isMrX ? 1 : -1) * gameState.getAvailableMoves().size() * AVAILABLE_MOVES_BONUS;
         return sum;
     }
 
-
     public Double itNegaMax(ImmutableGameState state, int depth, double alpha, double beta,
-                            Optional<Integer> mrXLocation, long startTime, Pair<Long, TimeUnit> timeoutPair) {
+            Optional<Integer> mrXLocation, long startTime, Pair<Long, TimeUnit> timeoutPair) {
         boolean changeSign = state.getRemaining().size() == 1;
         boolean isMrX = state.getRemaining().contains(Piece.MrX.MRX);
 
@@ -116,25 +118,25 @@ public final class GameTree {
         for (Move m : moves) {
             final Optional<Integer> nextMrXLocation = mrXLocation.isPresent()
                     ? changeSign
-                    ? Optional.of(m.accept(new Move.Visitor<>() {
-                @Override
-                public Integer visit(SingleMove move) {
-                    return move.destination;
-                }
+                            ? Optional.of(m.accept(new Move.Visitor<>() {
+                                @Override
+                                public Integer visit(SingleMove move) {
+                                    return move.destination;
+                                }
 
-                @Override
-                public Integer visit(DoubleMove move) {
-                    return move.destination2;
-                }
-            }))
-                    : mrXLocation
+                                @Override
+                                public Integer visit(DoubleMove move) {
+                                    return move.destination2;
+                                }
+                            }))
+                            : mrXLocation
                     : Optional.empty();
 
             double newValue = changeSign
                     ? -itNegaMax(state.newState(m), depth - 1, -beta, -alpha, nextMrXLocation, startTime,
-                    timeoutPair)
+                            timeoutPair)
                     : itNegaMax(state.newState(m), depth - 1, alpha, beta, nextMrXLocation, startTime,
-                    timeoutPair);
+                            timeoutPair);
 
             value = Math.max(value, newValue);
             alpha = Math.max(alpha, value);

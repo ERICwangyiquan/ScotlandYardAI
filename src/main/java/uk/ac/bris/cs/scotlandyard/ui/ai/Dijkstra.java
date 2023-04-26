@@ -8,15 +8,15 @@ import java.util.stream.Collectors;
 
 
 public final class Dijkstra {
-    public int[] distTo;
+    private int[] distTo;
     private PriorityQueue<Edge> pq;
 
-    public Dijkstra(@Nonnull ImmutableGameState gameState, int detectLocation) {
+    public Dijkstra(@Nonnull ImmutableGameState gameState, int location) {
         distTo = new int[gameState.getSetup().graph.nodes().size() + 1];  // locations start from 1
         Arrays.fill(distTo, Integer.MAX_VALUE);
-        distTo[detectLocation] = 0;     // start from detective's location, good for `detectiveAI`
+        distTo[location] = 0;     // start from detective's location, good for `detectiveAI`
         pq = new PriorityQueue<>(gameState.getSetup().graph.nodes().size(), (e1, e2) -> distTo[e1.toPoint] - distTo[e2.toPoint]); // ascending
-        pq.add(new Edge(detectLocation, detectLocation, 0));
+        pq.add(new Edge(location, location, 0));
 
         while (!pq.isEmpty()) {
             Edge curEdge = pq.remove();
@@ -25,6 +25,10 @@ public final class Dijkstra {
                 relax(new Edge(curEndLocation, nearNodes, 1));
             }
         }
+    }
+
+    public int getDistTo(int end) {
+        return distTo[end];
     }
 
     private void relax(Edge e) {
