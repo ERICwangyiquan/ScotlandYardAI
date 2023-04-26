@@ -96,12 +96,8 @@ public final class ImmutableGameState implements Board.GameState {
         this.winner = gameState.winner.stream().collect(collectingAndThen(Collectors.toSet(), ImmutableSet::copyOf));
     }
 
-    private static @Nonnull ImmutableGameState of(ImmutableGameState gameState) {
-        return new ImmutableGameState(gameState);
-    }
-
     private ImmutableGameState cloneState() {
-        return ImmutableGameState.of(this);
+        return new ImmutableGameState(this);
     }
 
     /* calculate and return the possible moves, using the value of the class attrubute `remaining`.
