@@ -65,96 +65,54 @@ remaining pieces after the recursive call to `advance` and recalculate the
 moves. This _justifies_ why `remaining` and `moves` are not final and why
 `calculateAvailableMoves` is a separate method and not just inside the
 constructor.
----
 
 # `cw-ai`
 
-For the AI part of the coursework we created two AIs --- one for Mr. X and the
-other for the detectives --- with moves selected via a **negamax**-generated
-**game tree**, trying to follow a **functional** style using Java's `Stream`
-class. The static evaluation function takes into account distances using
-**Dijkstra's** shortest path algorithm in addition to some weights which force
-Mr. X to (a) make distance from _all_ the detectives (as opposed to being far
-most but close to one) and (b) suggest that double move tickets and secret move
-tickets are particularly valuable.
+(NB: the submitted `cw-ai/` may not compile because it contains two copies of
+every class, from two branches. The second branch introduces pre-calcuation of
+all the distances via a SQL database)
 
-We opted to use **negamax** instead of minimax to avoid code repetition. They
-are almost the same algorithm, but negamax makes use of the lemma $\min (a, b)
-= - \max (-a, -b)$. In particular, we don't need to first determine if we should
-be minimising or maximising and then write two similar pieces of code differing
-only by one's use of $\min$ and the other's use of $\max$ --- instead we just
-have one piece of code which always takes $\max$ and if the next player is on
-the other "team" (that is, Mr. X versus the detectives) the second parameter to
-$\max$ is $-\text{negamax}(...)$ with some changes inside the parameters as
-well, primarily pertaining to alpha-beta pruning.
-
-<!---
-TODO:
-Eric:
-- scoring - how is it implemented? why? what are the drawbacks?
-  (hint: just walk through every step of the scoring function, things like
-  moving detectives away from each other, the mapping and logarithm, bonus for
-  having secret tickets, etc. limitation: the coefficients are BS).
-  
-Piotr:
-- iterative deepening
-- alpha beta
-
-DetectivesAI: prediction for MrXAI location? worth writing about?
---->
+- `GameTree` class
+  - negamax
+    - negamax variant of minimax means we don't check whose turn it is and will
+      instead check if the turn is _changing_ to pass different parameters in
+      the recursive call.
+    - time-bounded
+    - alpha-beta pruning
+    - iterative deepening
+    - visitor pattern to access MrX destination after move
+  - static scoring function using Dijkstra
+    - spread distance between detectives
+    - bonus for having secret and double tickets
+- functional programming style
+  - trivial parallelization with streams
+- Dijkstra's shortest path algorithm
+  - encapsulation and hiding attributes, using getters
+  - we do _not_ account for the spaces covered by detectives
+- `ImmutableGameState` class
+  - given `Board` "raise" it to `MyGameState` from [`cw-model`] --- like adapter
+  - `cloneState` to provide _independent_ copies of an instance
+  - ensured thread-safety
+  - all merits from [`cw-model`], since just extending that
+  - however, the space allocated to many instances is big
 
 ---
 
-First, we made an independent class named `Dijkstra` for the shortest distance algorithm.
+The reason we had to write the `ImmutableGameState` class was that we were only
+given a `Board` but we wanted to use methods like `advance` and `getRemaining`
+like in the closed part. The easiest solution was to copy the `MyGameState`
+class from the closed part and then extend it to work like an adapter/proxy for
+a `Board` which we pass to it.
 
-- Encapsulation as OOP style
-- Clever use of Data Structures
-
-TODO IF we go to MySQL THEN include MySQL.
-
----
-
-Then we created `GameTree` class which contains `score` method and `itNegaMax` method
-
-- Greedy algorithm to calculate the distance between MrX and Detectives
-- Comprehensive considerations for each circumstance
-- Time-limit check to insure the maximum calculations in the limited time
-- Heuristic Programming when iterating the possible next moves 
-- alpha-beta pruning
-- Cleaner code by implementation of NegaMax algorithm instead of MiniMax algorithm
-
-If we have more time, we could find better weights for each aspect considered by
-AI in score function.
-
-TODO how does the score function work?
-
-TODO `itNegaMax` uses the **visitor** pattern to get MrX's `destination(2)`.
-
----
-
-For better and independent simulations of the Board, we made the class `ImmutableGameState`,
-
-- Wrapper `newState()` for a better encapsulation
-- Factory pattern & Adapter pattern for `cloneState()`
-- Ensure thread-safety
-- All merits for cw-model task
-
-Space allocated by the instantiations of `ImmutableGameState` instance is big.
-
-TODO IF this is rewritten to proxy THEN rewrite to reflect changes
-
----
-
-TODO ideally we would have some more stuff to do with actual design patterns...
-truth is that we didn't have too much use for them, though I'm sure we could
-still shoehorn them in...
-
----
+One possible extension we could have made to the `Dijkstra` class is to
+pre-calculate all the distances and store them in a table. We tried this before
+by simply storing literals (calculate, print, then store in a static class so we
+never have to calculate again) however when we tried to compile this incurred an
+error because "the Java file [was] too large".
 
 ## Extensions
 
-We then extended the game tree generation with the following, each justified in
-turn:
+Here we have some more description on the extensions mentioned in `GameTree`.
 
 - time-limited work
 - parallelization (at the top level only)
@@ -163,59 +121,53 @@ turn:
 
 ### time-limiting
 
-<!--- ERIC --->
-
-TODO merits and limitations
+- check time left on each recursive call
+  - if there is not much time left, just do static analysis and return.
 
 ### parallelization
 
-TODO merits and limitations (sample in comments)
+- easy to implement using Java `Stream` class
+- exists at top level, in `MrXAI` and `DetectivesAI`
+  - calculate scores of moves in parallel then choose the highest
+- `Stream::parallel` wraps `ForkJoinPool` so we avoid manual threading
+- functional style reduces overhead on sharing memory
 
-<!-- The main advantage of using the `Stream` class (as mentioned also in -->
-<!-- [`cw-model`]) is that it makes **parallelization** trivial to accomplish. We use -->
-<!-- the method `Stream::parallel` throughout the code, particularly at the top-level -->
-<!-- (that is, in the classes `MrXAI` and `DetectivesAI`) so that we can calculate -->
-<!-- the scores of moves in parallel and so determine much faster which move is the -->
-<!-- best. As well as `Stream::parallel` wrapping the `ForkJoinPool` class, so we do -->
-<!-- not have to manage threads manually, we also benefited from the **functional** -->
-<!-- style which streams encourage as it meant we did not have to manage any shared -->
-<!-- memory which would have introduced overhead in the form of mutual exclusion and -->
-<!-- locks. We also opted not to use parallelization _inside_ of the game tree as CPU -->
-<!-- usage was already high so using more parallelization would likely have only -->
-<!-- introduced more overhead in switching between threads. -->
+Opted not to use parallelization inside of negamax, so as to avoid additional
+overhead due to switching between threads. With parallelization only at the top
+level, we already hit high CPU usage.
+
+---
+
+We initially considered making our own multithread version with smaller
+granularity due to concern that using `Stream::parallel` would result in too big
+granularity. Ultimately we opted to use it because
+
+- it made parallelization much easier
+- `Stream::parallel` wraps `ForkJoinWorkerThread` from the Fork/Join framework,
+  which has a work-stealing algorithm, suitable to our game tree as some moves
+  will result in much bigger subtrees than other moves.
 
 ### alpha-beta pruning
 
-TODO merits and limitations
+- This is a classic and well-documented extension which removes a lot of the
+  work which we might otherwise need to do.
+- the moves we iterate over inside the game tree are not sorted _and_ limited to
+  8 random moves, so the pruning may not be as efficient as it's supposed to be.
 
 ### iterative deepening
 
-TODO merits and limitations
+- The problem with classic negamax is that it is purely depth-first. So by
+  limiting computation on time we would not necessarily be able to inspect all
+  of the interesting moves at all.
+- The solution to this problem is to use a breadth-first search. Iterative
+  deepening makes a depth-first algorithm into a breadth-first algorithm.
+- This means we should be able to inspect more of the moves at a given depth to
+  get a good move even if we run out of time.
 
+### MySQL
 
----
-# TODO use this as merits and limitations of parallelization
-#### `Thoughts for Multi-threads,`
-#### `and Explainations for final implementation of it` - `by @Eric(YiQuan Wang)`
-In both AI class,`.stream.parallel` allocate new thread when the AI comes to next
-iteration in Iterative-Deepening-Breadth-First-Search, he was afraid
-the `Granularity` of multi-threads is too big if doing so, so he tried
-to make a customised multiThread version with smaller granularity, and the second
-big granularity for this program is to create a new thread when `ItNegamax()`
-method is called recursively. And this will cause exponential amount of new
-threads be created during the recursion, this might make the program slower
-by making `Context Switching` happens too frequently, in this case is mainly
-because threads will be switched out of the CPU when it exceeds its `time
-slice` and when the system transitions between user mode and kernel mode.
+- This was intended to provide $O(1)$ access to the distances between points as
+  a heuristic for static scoring.
+- However, it introduces some overhead in accessing the database
 
-So `Eric` give up on this solution. After this, he searched that `.stream.parallel`
-will use `ForkJoinWorkerThread` class as underlying code, he considered if
-`ThreadPoolExecutor` class is more suitable under this scenario. The
-difference he knows between this and `ThreadPoolExecutor` class is
-`ForkJoinWorkerThread` class uses Fork/Join framework and one of the most
-significant features of `Fork/Join framework` is its Work-Stealing Algorithm.
-
-But for our AI, some move will lead to the creation of a deep Negamax tree,
-while some will finish the game early, this will cause the imbalance of each task
-which is each thread, so the Work-Stealing algorithm is very useful in this
-case, so he chose to keep `.stream.parralel` at last.
+Initially, we tried to store distances as literals, however this would not compile.
