@@ -5,16 +5,14 @@ import java.sql.*;
 public class MysqlMap {
 
     /* table structure:
-    * +-------+------+----------+-----------+
-    * | start | end  | distance | searchKey |
-    * +-------+------+----------+-----------+
+    * +----------+-----------+
+    * | distance | searchKey |
+    * +----------+-----------+
     *
     * where 'searchKey' is the primary key for this table：
     * +-----------+------+------+-----+---------+----------------+
     * | Field     | Type | Null | Key | Default | Extra          |
     * +-----------+------+------+-----+---------+----------------+
-    * | start     | int  | NO   |     | NULL    |                |
-    * | end       | int  | YES  |     | NULL    |                |
     * | distance  | int  | NO   |     | NULL    |                |
     * | searchKey | int  | NO   | PRI | NULL    | auto_increment |
     * +-----------+------+------+-----+---------+----------------+
@@ -34,7 +32,7 @@ public class MysqlMap {
             Class.forName(JDBC_DRIVER);
 
             // check if table has already been created
-            String checkSql = "SELECT start, end, distance FROM all_distances";
+            String checkSql = "SELECT distance FROM all_distances";
             try (ResultSet checkRs = stmt.executeQuery(checkSql)) {
                 if (checkRs.next()) {
                     System.out.println("Table for shortest distances between all pairs of vertices in the graph has already been created");
@@ -43,15 +41,13 @@ public class MysqlMap {
             }
 
             // insert distances between all pairs of vertices into the table
-            String insertSql = "INSERT INTO all_distances (start, end, distance) VALUES (?, ?, ?)";
+            String insertSql = "INSERT INTO all_distances (distance) VALUES (?)";
             try {
                 for (int start : gameState.getSetup().graph.nodes()) {
                     Dijkstra dijkstra = new Dijkstra(gameState, start);
                     for (int end : gameState.getSetup().graph.nodes()) {
                         PreparedStatement insertStmt = conn.prepareStatement(insertSql);
-                        insertStmt.setInt(1, start);
-                        insertStmt.setInt(2, end);
-                        insertStmt.setInt(3, dijkstra.distTo[end]);
+                        insertStmt.setInt(1, dijkstra.distTo[end]);
 
                         int rowsInserted = insertStmt.executeUpdate();
                         if (rowsInserted != 1) {
