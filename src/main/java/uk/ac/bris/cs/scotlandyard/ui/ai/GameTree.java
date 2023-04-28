@@ -1,6 +1,7 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 
 import io.atlassian.fugue.Pair;
+import redis.clients.jedis.Jedis;
 import uk.ac.bris.cs.scotlandyard.model.Move;
 import uk.ac.bris.cs.scotlandyard.model.Move.DoubleMove;
 import uk.ac.bris.cs.scotlandyard.model.Move.SingleMove;
@@ -22,28 +23,30 @@ public final class GameTree {
     private static final double DISTANCE_WEIGHT = 1.0;
     private static final double LOG_DISTANCE_WEIGHT = 20.0;
     private static final double AVAILABLE_MOVES_BONUS = 0.4;
+    private static final String key = "syMap";
 
     private static double score(ImmutableGameState gameState, Optional<Integer> mrXLocation,
-            int curDepth, boolean isMrX) {
+                                int curDepth, boolean isMrX) {
+        Jedis jedis = new Jedis("redis://localhost:6379");
         if (mrXLocation.isEmpty()) {
             // if the move is a detective move AND we don't know where MrX has been
-            double sum = calculateDetectiveScore(gameState);
+            double sum = calculateDetectiveScore(gameState, jedis);
             sum += gameState.getAvailableMoves().size() * AVAILABLE_MOVES_BONUS;
             return -sum;
         }
 
         int location = mrXLocation.get();
-        double sum = calculateMrXScore(gameState, location, curDepth);
+        double sum = calculateMrXScore(gameState, location, curDepth, jedis);
         sum += calculateBonuses(gameState, isMrX);
         return sum;
     }
 
-    private static double calculateDetectiveScore(ImmutableGameState gameState) {
+    private static double calculateDetectiveScore(ImmutableGameState gameState, Jedis jedis) {
         List<Double> distances = gameState.getDetectives().stream()
                 .flatMap(detective1 -> gameState.getDetectives().stream()
                         .filter(detective2 -> !detective1.equals(detective2))
                         .map(detective2 -> calculateLogDistance(gameState, detective1.location(),
-                                detective2.location())))
+                                detective2.location(), jedis)))
                 .sorted()
                 .toList();
         double sum = distances.stream()
@@ -51,9 +54,9 @@ public final class GameTree {
         return sum;
     }
 
-    private static double calculateMrXScore(ImmutableGameState gameState, int location, int curDepth) {
+    private static double calculateMrXScore(ImmutableGameState gameState, int location, int curDepth, Jedis jedis) {
         List<Double> distances = gameState.getDetectives().stream()
-                .map(detective -> calculateLogDistance(gameState, location, detective.location()))
+                .map(detective -> calculateLogDistance(gameState, location, detective.location(), jedis))
                 .sorted()
                 .toList();
         double sum = distances.stream()
@@ -68,8 +71,8 @@ public final class GameTree {
         return sum;
     }
 
-    private static double calculateLogDistance(ImmutableGameState gameState, int location1, int location2) {
-        return Math.log((new Dijkstra(gameState, location1).getDistTo(location2) - 1) / 3.5) * LOG_DISTANCE_WEIGHT;
+    private static double calculateLogDistance(ImmutableGameState gameState, int location1, int location2, Jedis jedis) {
+        return Math.log(Double.valueOf(jedis.hget(key, String.valueOf((location1-1) * 199 + location2))) / 3.5) * LOG_DISTANCE_WEIGHT;
     }
 
     private static double calculateBonuses(ImmutableGameState gameState, boolean isMrX) {
@@ -83,7 +86,7 @@ public final class GameTree {
     }
 
     public Double itNegaMax(ImmutableGameState state, int depth, double alpha, double beta,
-            Optional<Integer> mrXLocation, long startTime, Pair<Long, TimeUnit> timeoutPair) {
+            Optional<Integer> mrXLocation, long startTime, Pair<Long, TimeUnit> timeoutPair, Jedis jedis) {
         boolean changeSign = state.getRemaining().size() == 1;
         boolean isMrX = state.getRemaining().contains(Piece.MrX.MRX);
 
@@ -134,9 +137,9 @@ public final class GameTree {
 
             double newValue = changeSign
                     ? -itNegaMax(state.newState(m), depth - 1, -beta, -alpha, nextMrXLocation, startTime,
-                            timeoutPair)
+                            timeoutPair, jedis)
                     : itNegaMax(state.newState(m), depth - 1, alpha, beta, nextMrXLocation, startTime,
-                            timeoutPair);
+                            timeoutPair, jedis);
 
             value = Math.max(value, newValue);
             alpha = Math.max(alpha, value);

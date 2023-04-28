@@ -1,6 +1,7 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 
 import io.atlassian.fugue.Pair;
+import redis.clients.jedis.Jedis;
 import uk.ac.bris.cs.scotlandyard.model.Ai;
 import uk.ac.bris.cs.scotlandyard.model.Board;
 import uk.ac.bris.cs.scotlandyard.model.Move;
@@ -24,12 +25,15 @@ public class MrXAI implements Ai {
     @Nonnull
     @Override
     public Move pickMove(@Nonnull Board board, Pair<Long, TimeUnit> timeoutPair) {
+        RedisMap.createTable(new ImmutableGameState(board, 0));
+
+        try (Jedis jedis = new Jedis("redis://localhost:6379")) {
         final long startTime = System.currentTimeMillis();
         final long oneSecond = 1000;
 
         BiFunction<Integer, Move, Double> score = (Integer d, Move m) -> gameTree.itNegaMax(
                 new ImmutableGameState(board, m.source()).newState(m),
-                d, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Optional.of(m.source()), startTime, timeoutPair);
+                d, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY, Optional.of(m.source()), startTime, timeoutPair, jedis);
 
         Move move = null;
         for (int d = 0; d < 4; d++) {
@@ -55,6 +59,7 @@ public class MrXAI implements Ai {
         }
 
         return move;
+        }
     }
 
     @Override
