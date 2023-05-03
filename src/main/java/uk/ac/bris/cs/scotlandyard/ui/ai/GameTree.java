@@ -92,8 +92,8 @@ public final class GameTree {
 
         // Check timeout
         long curTime = System.currentTimeMillis();
-        long oneSecond = 1000;
-        if (timeoutPair.left() * 1000 - (curTime - startTime) < oneSecond) {
+        long fiveSecond = 5000;
+        if (timeoutPair.left() * 1000 - (curTime - startTime) < fiveSecond) {
             return isMrX ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
         }
 
